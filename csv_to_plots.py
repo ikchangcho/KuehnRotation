@@ -110,7 +110,8 @@ def plots_overlap(filename_pattern, indices=None, title='', xlabel='', ylabel=''
     plt.tight_layout()
     plt.show()
 
-def variance_over_sensors():
+
+def deviation_over_sensors():
     filename_pattern = "020724_P*_calibrate_*.csv"
     data_list = load_csv(filename_pattern)
     xy_list = define_xy(data_list, x_col=2, x_factor=1 / 3600, y_col=3, filename='050724_CO2')
@@ -142,4 +143,3 @@ def variance_over_sensors():
 
 # Example usage
 if __name__ == "__main__":
-    
