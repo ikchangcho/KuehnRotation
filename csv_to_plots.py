@@ -111,7 +111,7 @@ def plots_overlap(filename_pattern, indices=None, title='', xlabel='', ylabel=''
     plt.show()
 
 
-def deviation_over_sensors():
+def std_over_sensors():
     filename_pattern = "020724_P*_calibrate_*.csv"
     data_list = load_csv(filename_pattern)
     xy_list = define_xy(data_list, x_col=2, x_factor=1 / 3600, y_col=3, filename='050724_CO2')
@@ -130,16 +130,17 @@ def deviation_over_sensors():
         for i, t0 in enumerate(times):
             mask = (x > t0 - dt) & (x < t0 + dt)
             avg_CO2_at_time_points[i, j] = np.average(y[mask])
-    variance = np.var(avg_CO2_at_time_points, axis=1)
+    variance = np.std(avg_CO2_at_time_points, axis=1)
     np.savetxt('050724_avg_CO2_at_time_points.csv', avg_CO2_at_time_points, delimiter=",",
                header=f'Average CO2 over dt = {dt} hour time span at every time point with interval 0.1 hour')
-    np.savetxt('050724_variance.csv', variance, delimiter=",",
-               header='Variance over 19 sensors at every time point with interval 0.1 hour')
+    np.savetxt('050724_std.csv', variance, delimiter=",",
+               header='Standard deviation over 19 sensors at every time point with interval 0.1 hour')
     plt.plot(times, variance)
     plt.xlabel('Time after calibration (hours)')
     plt.ylabel(r'$\Delta CO_2$ (ppm)')
-    plt.title(r'Variance on $CO_2$ measurement over 19 sensors')
+    plt.title(r'Standard deviation on $CO_2$ measurement over 19 sensors')
     plt.show()
 
 # Example usage
 if __name__ == "__main__":
+    std_over_sensors()
