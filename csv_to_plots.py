@@ -19,14 +19,16 @@ def load_csv(filename_pattern, indices=None):
 
 
 # Function to process data, extracting specified columns and calculating derivatives
-def define_x_y(data_list, init=0, x_col=0, x_factor=1, y_col=1, y_factor=1):
+def define_xy(data_list, init=0, x_col=0, x_factor=1, y_col=1, y_factor=1, filename=None):
     xy_list = []
     for idx, data in enumerate(data_list):
-        x = data[init:, x_col] * x_factor # Specified column as x values
-        y = data[init:, y_col] * y_factor # Specified column as y values
-        xy_list.append((x, y))
+        x = data[init:, x_col] * x_factor
+        y = data[init:, y_col] * y_factor
+        xy_list.append(np.vstack((x, y)).T)
+        if filename is None:
+            filename = 'y_values'
         df = pd.DataFrame({'x': x, 'y': y})
-        df.to_csv(f'y_values_{idx}.csv', index=False)  # Save to CSV
+        df.to_csv(f'{filename}_{idx}.csv', index=False)  # Save to CSV
     return xy_list
 
 
@@ -40,6 +42,7 @@ def derivatives(xy_list):
         df = pd.DataFrame({'x': x, 'dydx': dydx})
         df.to_csv(f'derivatives_{idx}.csv', index=False)  # Save to CSV
     return derivatives
+
 
 def smooth_derivatives(xy_list, half_window=10, poly_order=2):
     smooth_derivatives = []
@@ -57,6 +60,7 @@ def smooth_derivatives(xy_list, half_window=10, poly_order=2):
         df = pd.DataFrame({'x': x, 'dydx': dydx})
         df.to_csv(f'smooth_derv_w{half_window}_{idx}.csv', index=False)  # Save to CSV
     return smooth_derivatives
+
 
 def plots_seperate(filename_pattern, indices=None, titles=None, xlabels=None, ylabels=None):
     data_list = load_csv(filename_pattern)
@@ -106,15 +110,36 @@ def plots_overlap(filename_pattern, indices=None, title='', xlabel='', ylabel=''
     plt.tight_layout()
     plt.show()
 
+def variance_over_sensors():
+    filename_pattern = "020724_P*_calibrate_*.csv"
+    data_list = load_csv(filename_pattern)
+    xy_list = define_xy(data_list, x_col=2, x_factor=1 / 3600, y_col=3, filename='050724_CO2')
+    xy_list_truncated = []
+    for xy in xy_list:
+        xy_truncated = xy[xy[:, 0] >= xy[0, 0] + 19]
+        xy_truncated[:, 0] = xy_truncated[:, 0] - xy_truncated[0, 0]
+        xy_list_truncated.append(xy_truncated)
+
+    times = np.arange(1.5, 44.7, 0.1)
+    dt = 1.5
+    avg_CO2_at_time_points = np.zeros((len(times), 19))
+    for j, xy in enumerate(xy_list_truncated):
+        x = xy[:, 0]
+        y = xy[:, 1]
+        for i, t0 in enumerate(times):
+            mask = (x > t0 - dt) & (x < t0 + dt)
+            avg_CO2_at_time_points[i, j] = np.average(y[mask])
+    variance = np.var(avg_CO2_at_time_points, axis=1)
+    np.savetxt('050724_avg_CO2_at_time_points.csv', avg_CO2_at_time_points, delimiter=",",
+               header=f'Average CO2 over dt = {dt} hour time span at every time point with interval 0.1 hour')
+    np.savetxt('050724_variance.csv', variance, delimiter=",",
+               header='Variance over 19 sensors at every time point with interval 0.1 hour')
+    plt.plot(times, variance)
+    plt.xlabel('Time after calibration (hours)')
+    plt.ylabel(r'$\Delta CO_2$ (ppm)')
+    plt.title(r'Variance on $CO_2$ measurement over 19 sensors')
+    plt.show()
+
 # Example usage
 if __name__ == "__main__":
-    # filename_pattern = "260624_3cm4cm_*.csv"
-    # data_list = load_csv(filename_pattern)
-    # data = define_x_y(data_list, x_col=2, y_col=3)
-    for i in range(2, 6):
-        #smooth_derivatives(load_csv("y_values_*.csv"), half_window=1000*i)
-        filename_to_plot = f"smooth_derv_w{1000*i}_*.csv"
-        plots_overlap(filename_to_plot, indices=[1, 2, 3], title=f'window length={2000*i+1}')
-        plt.close('all')
-        plots_overlap(filename_to_plot, indices=[4, 5, 6], title=f'window length={2000*i+1}')
-        plt.close('all')
+    
