@@ -10,5 +10,4 @@ for xy in xy_list:
 ax.set_title(r'19 Sensors Calibration')
 ax.set_xlabel(r'Time (hour)')
 ax.set_ylabel(r'$CO_2$ (ppm)')
-plt.tight_layout()
 plt.show()
