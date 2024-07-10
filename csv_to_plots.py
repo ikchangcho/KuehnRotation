@@ -2,6 +2,7 @@ import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import CubicSpline
 
 # Function to load data from CSV files matching the filename pattern
 def load_csv(filename_pattern, indices=None):
@@ -41,20 +42,38 @@ def define_xy(data_list, init=0, x_col=0, x_factor=1, y_col=1, y_factor=1, save_
     return xy_list
 
 
-def derivatives(xy_list, save_csv=True):
+def derivatives(xy_list, save_csv_filename=None):
     derivatives = []
     for idx, xy in enumerate(xy_list):
         x = xy[:, 0]
         y = xy[:, 1]
         dydx = np.gradient(y, x)  # Calculate the derivative
         derivatives.append(np.vstack((x, dydx)).T)
-        if save_csv:
+        if save_csv_filename is not None:
             df = pd.DataFrame({'x': x, 'dydx': dydx})
-            df.to_csv(f'derivatives_{idx}.csv', index=False)  # Save to CSV
+            df.to_csv(f'{save_csv_filename}_{idx}.csv', index=False)  # Save to CSV
     return derivatives
 
 
-def smooth_derivatives(xy_list, half_window=5000, poly_order=2, indices=None, save_csv_filename=None):
+def smooth_poly(xy_list, half_window=5000, poly_order=2, save_csv_filename=None):
+    smooth_xy_list = []
+    for idx, xy in enumerate(xy_list):
+        xy = xy.astype(float)
+        x = xy[:, 0]
+        y = xy[:, 1]
+        for i in range(len(y)):
+            start = max(0, i - half_window)
+            end = min(len(y), i + half_window + 1)
+            p = np.polyfit(x[start:end], y[start:end], poly_order)
+            y[i] = np.polyval(p, x[i])
+        smooth_xy_list.append(np.vstack((x, y)).T)
+
+        if save_csv_filename is not None:
+            df = pd.DataFrame({'x': x, 'y': y})
+            df.to_csv(f'{save_csv_filename}_w{half_window}_{idx}.csv', index=False)  # Save to CSV
+    return smooth_xy_list
+
+def smooth_derivatives(xy_list, half_window=3000, poly_order=2, indices=None, save_csv_filename=None):
     smooth_derivatives = []
     if indices is None:
         indices = range(len(xy_list))
@@ -78,6 +97,28 @@ def smooth_derivatives(xy_list, half_window=5000, poly_order=2, indices=None, sa
             df.to_csv(f'{save_csv_filename}_w{half_window}_{idx}.csv', index=False)  # Save to CSV
     return smooth_derivatives
 
+
+def cubic_spline_derivatives(xy_list):
+    derivatives_list = []
+    for idx, xy in enumerate(xy_list):
+        # Ensure the data is of type float
+        xy = xy.astype(float)
+        x = xy[:, 0]
+        y = xy[:, 1]
+
+        # Create the cubic spline interpolator
+        cs = CubicSpline(x, y)
+
+        # Compute the first derivative
+        dydx = cs(x, 1)  # The '1' here specifies the first derivative
+
+        derivatives_list.append(np.vstack((x, dydx)).T)
+
+        # # Optionally save the derivatives to a CSV
+        # df = pd.DataFrame({'x': x, 'dydx': dydx})
+        # df.to_csv(f'cubic_spline_derivatives_{idx}.csv', index=False)
+
+    return derivatives_list
 
 def csv_to_plots_seperate(filename_pattern, indices=None, titles=None, xlabels=None, ylabels=None):
     data_list = load_csv(filename_pattern)
@@ -155,34 +196,46 @@ def list_to_plots_overlap(data_list, indices=None, title='', xlabel='', ylabel='
 
 # Example usage
 if __name__ == "__main__":
-    filename_pattern1 = '260624_1cm2cm_*.csv'
-    data_list = load_csv(filename_pattern1)
-    xy_list = define_xy(data_list, x_col=2, x_factor=1/3600, y_col=3, y_factor=[1, 1/7.97, 1/5.30, 1/6.53, 1/16.54, 1/20.17, 1/20.03],
-                        diff=True, save_csv_filename='co2_per_gram_1cm2cm')
-    derv_list = smooth_derivatives(xy_list, save_csv_filename='derv_per_gram_1cm2cm')
-    list_to_plots_overlap(derv_list, xlabel='Time (hour)',
-                         ylabel=r'$\frac{d (\Delta CO_2)}{dt}$ (ppm/hour)', indices=[1, 2, 3],
-                         title=r'Time derivative of $\Delta CO_2$ per gram of soil' f'\n 1cm Stack', legend=False,
-                         save_file_name='080724_derv_1cm.png')
-    plt.close('all')
-    list_to_plots_overlap(derv_list, xlabel='Time (hour)',
-                         ylabel=r'$\frac{d (\Delta CO_2)}{dt}$ (ppm/hour)', indices=[4, 5, 6],
-                         title=r'Time derivative of $\Delta CO_2$ per gram of soil' f'\n 2cm Stack', legend=False,
-                         save_file_name='080724_derv_2cm.png')
-    plt.close('all')
+    filename_pattern1 = 'co2_per_gram_1cm2cm_*.csv'
+    smooth_xy_list = smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(load_csv(filename_pattern1)))))))))))
+    derv_list1 = smooth_derivatives(smooth_xy_list)
 
-    filename_pattern2 = '260624_3cm4cm_*.csv'
-    data_list = load_csv(filename_pattern2)
-    xy_list = define_xy(data_list, x_col=2, x_factor=1/3600, y_col=3, y_factor=[1, 1/33.9, 1/31.67, 1/31.18, 1/45.08, 1/42.65, 1/46.93],
-                        diff=True, save_csv_filename='co2_per_gram_3cm4cm')
-    derv_list = smooth_derivatives(xy_list, save_csv_filename='derv_per_gram_3cm4cm')
-    list_to_plots_overlap(derv_list, xlabel='Time (hour)',
-                         ylabel=r'$\frac{d (\Delta CO_2)}{dt}$ (ppm/hour)', indices=[1, 2, 3],
-                         title=r'Time derivative of $\Delta CO_2$ per gram of soil' f'\n 3cm Stack', legend=False,
-                         save_file_name='080724_derv_3cm.png')
-    plt.close('all')
-    list_to_plots_overlap(derv_list, xlabel='Time (hour)',
-                         ylabel=r'$\frac{d (\Delta CO_2)}{dt}$ (ppm/hour)', indices=[4, 5, 6],
-                         title=r'Time derivative of $\Delta CO_2$ per gram of soil' f'\n 4cm Stack', legend=False,
-                         save_file_name='080724_derv_4cm.png')
-    plt.close('all')
+    filename_pattern2 = 'co2_per_gram_3cm4cm_*.csv'
+    smooth_xy_list = smooth_poly(load_csv(filename_pattern2))
+    derv_list2 = smooth_derivatives(smooth_xy_list)
+
+    fig, axs = plt.subplots(2, 2)
+    for data in derv_list1[1:3]:
+        x = data[:, 0]  # assuming x values are in the first column
+        y = data[:, 1]  # assuming y values are in the second column
+        axs[0, 0].plot(x, y)
+    axs[0, 0].set_title(f'1cm stack')
+    axs[0, 0].set_ylim([0, 14])
+
+    for data in derv_list1[4:6]:
+        x = data[:, 0]  # assuming x values are in the first column
+        y = data[:, 1]  # assuming y values are in the second column
+        axs[0, 1].plot(x, y)
+    axs[0, 1].set_title(f'2cm stack')
+    axs[0, 1].set_ylim([0, 9.5])
+
+    for data in derv_list2[1:3]:
+        x = data[:, 0]  # assuming x values are in the first column
+        y = data[:, 1]  # assuming y values are in the second column
+        axs[1, 0].plot(x, y)
+    axs[1, 0].set_title(f'3cm stack')
+    axs[1, 0].set_ylim([0, 8])
+
+    for data in derv_list2[4:6]:
+        x = data[:, 0]  # assuming x values are in the first column
+        y = data[:, 1]  # assuming y values are in the second column
+        axs[1, 1].plot(x, y)
+    axs[1, 1].set_title(f'4cm stack')
+    axs[1, 1].set_ylim([0, 7])
+
+    fig.set_size_inches(10, 8)
+    fig.suptitle(r'$\frac{d[CO_2]}{dt}$ per gram of soil', fontsize=20)
+    fig.text(0.5, 0.04, 'Time (hour)', ha='center', fontsize=15)
+    fig.text(0.04, 0.5, r'$\Delta CO_2$ (ppm)', va='center', rotation='vertical', fontsize=15)
+    fig.savefig('090724_derivatives.png')
+    plt.show()
