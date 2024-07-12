@@ -192,50 +192,5 @@ def list_to_plots_overlap(data_list, indices=None, title='', xlabel='', ylabel='
         fig.savefig(save_file_name)
     plt.show()
 
-
-
 # Example usage
-if __name__ == "__main__":
-    filename_pattern1 = 'co2_per_gram_1cm2cm_*.csv'
-    smooth_xy_list = smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(smooth_poly(load_csv(filename_pattern1)))))))))))
-    derv_list1 = smooth_derivatives(smooth_xy_list)
-
-    filename_pattern2 = 'co2_per_gram_3cm4cm_*.csv'
-    smooth_xy_list = smooth_poly(load_csv(filename_pattern2))
-    derv_list2 = smooth_derivatives(smooth_xy_list)
-
-    fig, axs = plt.subplots(2, 2)
-    for data in derv_list1[1:3]:
-        x = data[:, 0]  # assuming x values are in the first column
-        y = data[:, 1]  # assuming y values are in the second column
-        axs[0, 0].plot(x, y)
-    axs[0, 0].set_title(f'1cm stack')
-    axs[0, 0].set_ylim([0, 14])
-
-    for data in derv_list1[4:6]:
-        x = data[:, 0]  # assuming x values are in the first column
-        y = data[:, 1]  # assuming y values are in the second column
-        axs[0, 1].plot(x, y)
-    axs[0, 1].set_title(f'2cm stack')
-    axs[0, 1].set_ylim([0, 9.5])
-
-    for data in derv_list2[1:3]:
-        x = data[:, 0]  # assuming x values are in the first column
-        y = data[:, 1]  # assuming y values are in the second column
-        axs[1, 0].plot(x, y)
-    axs[1, 0].set_title(f'3cm stack')
-    axs[1, 0].set_ylim([0, 8])
-
-    for data in derv_list2[4:6]:
-        x = data[:, 0]  # assuming x values are in the first column
-        y = data[:, 1]  # assuming y values are in the second column
-        axs[1, 1].plot(x, y)
-    axs[1, 1].set_title(f'4cm stack')
-    axs[1, 1].set_ylim([0, 7])
-
-    fig.set_size_inches(10, 8)
-    fig.suptitle(r'$\frac{d[CO_2]}{dt}$ per gram of soil', fontsize=20)
-    fig.text(0.5, 0.04, 'Time (hour)', ha='center', fontsize=15)
-    fig.text(0.04, 0.5, r'$\Delta CO_2$ (ppm)', va='center', rotation='vertical', fontsize=15)
-    fig.savefig('090724_derivatives.png')
-    plt.show()
+#if __name__ == "__main__":
