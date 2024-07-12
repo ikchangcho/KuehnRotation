@@ -4,8 +4,8 @@ from scipy.special import erf
 
 # Define the constants
 c = 1.0  # Adjust this value as needed
-L = 0.01  # Adjust this value as needed
-D = 1e-9  # Adjust this value as needed
+L = 0.04  # Adjust this value as needed
+D = 2e-9  # Adjust this value as needed
 
 # Define the function
 def f(t, L, D):
@@ -14,13 +14,13 @@ def f(t, L, D):
     return term1 - term2
 
 # Define the time range
-t_values = np.linspace(0.01, 2e7, 1000)  # Avoid t=0 to prevent division by zero
+t_values = np.linspace(0.01, 1e7, 1000)  # Avoid t=0 to prevent division by zero
 dC_dt_values = f(t_values, L, D)
 
 # Plot the function
 plt.figure(figsize=(10, 6))
 plt.plot(t_values/3600, dC_dt_values, label=r'$\frac{dC(t)}{dt}$')
-plt.axhline(y=0.9, color='r', linestyle='--', label='y=0.9')
+plt.axhline(y=0.5, color='r', linestyle='--', label='y=0.5')
 plt.xlabel('Time (hour)')
 plt.ylabel(r'$\frac{1}{cL}\frac{dC(t)}{dt}$')
 plt.title(r'Plot of $\frac{1}{cL}\frac{dC(t)}{dt}$' f'when D={D}, L={L}')
